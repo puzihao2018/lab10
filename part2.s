@@ -42,6 +42,13 @@ _start:
                                             // enable IRQ interrupts in the processor
             MOV     R0, #0b01010011         // IRQ unmasked, MODE = SVC
             MSR     CPSR_c, R0              
+CONFIG_TIMER:
+            LDR     R0, =MPCORE_PRIV_TIMER  // set R0 points to MPCORE_PRIV_TIEMR
+            LDR     R1, =SWTIME             // set switch time to be 10^8, which is 0.5s
+            STR     R1, [R0, #0]            // load TIMER_LOAD be 10^8
+            MOV     R1, #7                  // let R1 be 0b111
+            STR     R1, [R0, #8]            // load control bit (I A E) be (1 1 1)
+            .equ    SWTIME,          0x5F5E100
 IDLE:                                       
             B       IDLE                    // main program simply idles
 
