@@ -43,7 +43,7 @@ _start:
             MOV     R0, #0b01010011         // IRQ unmasked, MODE = SVC
             MSR     CPSR_c, R0              
 CONFIG_TIMER:
-            LDR     R0, =MPCORE_PRIV_TIMER  // set R0 points to MPCORE_PRIV_TIEMR
+            LDR     R0, =MPCORE_PRIV_TIMER  // set R0 points to MPCORE_PRIV_TIMER
             LDR     R1, =SWTIME             // set switch time to be 10^8, which is 0.5s
             STR     R1, [R0, #0]            // load TIMER_LOAD be 10^8
             MOV     R1, #7                  // let R1 be 0b111
@@ -80,9 +80,17 @@ SERVICE_IRQ:
 
 FPGA_IRQ1_HANDLER:                          
             CMP     R5, #KEYS_IRQ           
-UNEXPECTED: BNE     UNEXPECTED              // if not recognized, stop here
+UNEXPECTED: BNE     FPGA_IQR2_HANDLER              
 
-            BL      KEY_ISR                 
+            BL      KEY_ISR 
+            B       EXIT_IRQ                
+
+FPGA_IQR2_HANDLER:
+            CMP     R5, #MPCORE_PRIV_TIMER_IRQ   
+TIMER_UNEXPECTED:
+            BNE     TIMER_UNEXPECTED        // if not recognized, stop here
+            BL      TIMER_ISR
+
 EXIT_IRQ:                                   
 /* Write to the End of Interrupt Register (ICCEOIR) */
             STR     R5, [R4, #ICCEOIR]      // write to ICCEOIR
@@ -93,5 +101,18 @@ EXIT_IRQ:
 /*--- FIQ ---------------------------------------------------------------------*/
 SERVICE_FIQ:                                
             B       SERVICE_FIQ             
+
+/*TIMER_ISR*/
+TIMER_ISR:
+            LDR R0, =number                 // Let R0 be the pointer to glob var number
+            LDR R1, =LED_BASE               // Let R1 be the pointer to LED
+            LDR R2, [R0]                    // Load current num, initaially 0
+            STR R2, [R1]                    // write to LED
+            ADD R2, R2, #1                  // increment number by 1
+            STR R2, [R0]                    // Write back to number
+
+
+number:
+    .word 0
 
 .end         
