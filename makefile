@@ -27,18 +27,18 @@ LDFLAGS		:= $(ARCHLDFLAGS) $(ARCHLDSCRIPT) -e _start -u _start
 OCFLAGS		:= -O srec
 
 # Files
-HDRS		:= address_map_arm.s
-SRCS		:= interrupt_example.s interrupt_ID.s config_GIC.s key_isr.s
+HDRS		:=
+SRCS		:= address_map_arm.s config_GIC2.s interrupt_ID.s key_isr.s part2.s
 OBJS		:= $(patsubst %, %.o, $(SRCS))
 
 # Targets
-COMPILE: interrupt_example.srec
+COMPILE: address_map_arm.srec
 
-interrupt_example.srec: interrupt_example.axf
+address_map_arm.srec: address_map_arm.axf
 	$(RM) $@
 	$(OC) $(OCFLAGS) $< $@
 
-interrupt_example.axf: $(OBJS)
+address_map_arm.axf: $(OBJS)
 	$(RM) $@
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
 
@@ -51,5 +51,5 @@ interrupt_example.axf: $(OBJS)
 	$(AS) $(ASFLAGS) $< -o $@
 
 CLEAN: 
-	$(RM) interrupt_example.srec interrupt_example.axf $(OBJS)
+	$(RM) address_map_arm.srec address_map_arm.axf $(OBJS)
 
