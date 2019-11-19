@@ -61,15 +61,15 @@ CONFIG_JTAG://CONTRIBUTION: Zihao Pu
 
 IDLE:       //CONTRIBUTION: FRANCIS
             PUSH    {R0-R5,LR}
-            LDR     R4, =CHAR_FLAG
-			LDR     R4, [R4]
-			CMP     R4, #1
+            LDR     R0, =CHAR_FLAG
+			LDR     R1, [R0]
+			CMP     R1, #1
 			BNE     IDLE 
-			LDR     R0, =CHAR_BUFFER
+			LDR     R2, =CHAR_BUFFER
+            LDRB    R3, [R2,#0]
 			B       PUT_JTAG
-			LDR     R4, =CHAR_FLAG
 			MOV     R5, #1
-			STR     R5, [R4]
+			STR     R5, [R0]
             POP     {R0-R5,PC}
             B       IDLE                    // main program simply idles
 
@@ -167,7 +167,7 @@ JTAG_ISR:   //CONTRIBUTION: FRANCIS
 			MOV  R5, #1                   //move a immediate 1 into R5
 			LDR  R6, =CHAR_FLAG           //get address of charflag
 			STR  R5, [R6]                 //set the flag to be one
-            LDRB  R2, [R0]                //get the value in the register again
+            LDR  R2, [R0]                //get the value in the register again
             AND  R2, R2, #0x0000000F      //get data value
 			LDR  R3,  =CHAR_BUFFER        //load the char buffer address
 			STR  R2, [R3]			      //store the char value into the buffer
