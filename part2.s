@@ -42,14 +42,20 @@ _start:
                                             // enable IRQ interrupts in the processor
             MOV     R0, #0b01010011         // IRQ unmasked, MODE = SVC
             MSR     CPSR_c, R0              
-CONFIG_TIMER:
+
+CONFIG_TIMER://CONTRIBUTION: FRANCIS
             LDR     R0, =MPCORE_PRIV_TIMER  // set R0 points to MPCORE_PRIV_TIMER
             LDR     R1, =SWTIME             // set switch time to be 10^8, which is 0.5s
+            /*Load 10^8 to load register*/
             STR     R1, [R0, #0]            // load TIMER_LOAD be 10^8
-            MOV     R1, #7                  // let R1 be 0b111
+
+            /*Load Control signal to contro register*/
+            LDR     R1, [R0, #8]            // read current control register value
+            ORR     R1, R1, #7              // let R1 be 0b111
             STR     R1, [R0, #8]            // load control bit (I A E) be (1 1 1)
-            .equ    SWTIME,          0x5F5E100
-IDLE:                                       
+
+            .equ    SWTIME,     0x5F5E100   // 0x5F5E100
+IDLE:                                 
             B       IDLE                    // main program simply idles
 
 /* Define the exception service routines */
@@ -80,12 +86,12 @@ SERVICE_IRQ:
 
 FPGA_IRQ1_HANDLER:                          
             CMP     R5, #KEYS_IRQ           
-UNEXPECTED: BNE     FPGA_IQR2_HANDLER              
+            BNE     TIMER_HANDLER       //if not key, check timer     
 
-            BL      KEY_ISR 
-            B       EXIT_IRQ                
+            BL      KEY_ISR
+            B       EXIT_IRQ
 
-FPGA_IQR2_HANDLER:
+TIMER_HANDLER:
             CMP     R5, #MPCORE_PRIV_TIMER_IRQ   
 TIMER_UNEXPECTED:
             BNE     TIMER_UNEXPECTED        // if not recognized, stop here
@@ -102,14 +108,21 @@ EXIT_IRQ:
 SERVICE_FIQ:                                
             B       SERVICE_FIQ             
 
-/*TIMER_ISR*/
+/*TIMER_ISR*/   //CONTRIBUTION: Zihao PU
 TIMER_ISR:
-            LDR R0, =number                 // Let R0 be the pointer to glob var number
-            LDR R1, =LED_BASE               // Let R1 be the pointer to LED
-            LDR R2, [R0]                    // Load current num, initaially 0
-            STR R2, [R1]                    // write to LED
-            ADD R2, R2, #1                  // increment number by 1
-            STR R2, [R0]                    // Write back to number
+
+            PUSH    {R0-R4}
+            LDR     R0, =MPCORE_PRIV_TIMER
+            MOV     R1, #0
+            STR     R1, [R0, #0xC]          //clear interrupt register
+            LDR     R2, =number
+            LDR     R3, =LED_BASE           
+            LDR     R4, [R2]                //read current number
+            ADD     R4, R4, #1              //increment by 1
+            STR     R4, [R3,#0]             // write on LED
+            STR     R4, [R2,#0]             //write back to number
+            POP     {R0-R4}
+            BX      LR
 
 
 number:

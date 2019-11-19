@@ -13,6 +13,7 @@ CONFIG_GIC:
     			MOV		R1, #1					// this field is a bit-mask; bit 0 targets cpu0
     			BL			CONFIG_INTERRUPT
 
+				//CONTRIBUTION: FRANCIS
 				/* CONFIG_INTERRUPT (int_ID (R0), CPU_target (R1)); */
 				MOV 	R0, #80					// JTAG port (interrupt ID = 80)
 				MOV		R1, #1					// this field is a bit-mask; bit 0 targets cpu0
@@ -20,7 +21,7 @@ CONFIG_GIC:
 
 				/* CONFIG_INTERRUPT (int_ID (R0), CPU_target (R1)); */
 				MOV		R0, #29					// Build_in_Timer port (interrupt ID = 29)
-				MOV		R0, #1					// this field is a bit-mask; bit 0 targets cpu0
+				MOV		R1, #1					// this field is a bit-mask; bit 0 targets cpu0
 				BL 			CONFIG_INTERRUPT
 
 				/* configure the GIC CPU interface */
