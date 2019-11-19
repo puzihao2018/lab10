@@ -54,8 +54,33 @@ CONFIG_TIMER://CONTRIBUTION: FRANCIS
             ORR     R1, R1, #7              // let R1 be 0b111
             STR     R1, [R0, #8]            // load control bit (I A E) be (1 1 1)
 
-IDLE:                                 
+CONFIG_JTAG://CONTRIBUTION: Zihao Pu
+            LDR     R0, =JTAG_UART_BASE     // set R0 points to JTAG
+            MOV     R1, #1                  // set R1 be 1, then RE is 1 and WE is 0
+            STR     R1, [R0,#4]             // Write to JTAG control
+
+IDLE:       //CONTRIBUTION: FRANCIS
+            PUSH    {R0-R5,LR}
+            LDR     R4, =CHAR_FLAG
+			LDR     R4, [R4]
+			CMP     R4, #1
+			BNE     IDLE 
+			LDR     R0, =CHAR_BUFFER
+			B       PUT_JTAG
+			LDR     R4, =CHAR_FLAG
+			MOV     R5, #1
+			STR     R5, [R4]
+            POP     {R0-R5,PC}
             B       IDLE                    // main program simply idles
+
+PUT_JTAG:   
+            LDR R1, =0xFF201000 // JTAG UART base address
+            LDR R2, [R1, #4] // read the JTAG UART control register
+            LDR R3, =0xFFFF
+            ANDS R2, R2, R3 // check for write space
+            BEQ END_PUT // if no space, ignore the character
+            STR R0, [R1] // send the character
+END_PUT:    BX LR
 
 /* Define the exception service routines */
 
@@ -83,18 +108,27 @@ SERVICE_IRQ:
             LDR     R4, =MPCORE_GIC_CPUIF   
             LDR     R5, [R4, #ICCIAR]       // read from ICCIAR
 
-FPGA_IRQ1_HANDLER:                          
+FPGA_IRQ1_HANDLER:                         
             CMP     R5, #KEYS_IRQ           
             BNE     TIMER_HANDLER       //if not key, check timer     
 
             BL      KEY_ISR
             B       EXIT_IRQ
 
-TIMER_HANDLER:
+TIMER_HANDLER://CONTRIBUTION: ZIhao PU
             CMP     R5, #MPCORE_PRIV_TIMER_IRQ   
-TIMER_UNEXPECTED:
-            BNE     TIMER_UNEXPECTED        // if not recognized, stop here
+            BNE     JTAG_INTERRUPT_HANDLER        // if not timer, check JTAG
+
             BL      TIMER_ISR
+            B       EXIT_IRQ
+
+JTAG_INTERRUPT_HANDLER://CONTRIBUTION: FRANCIS
+            CMP     R5, #JTAG_IRQ
+        	BNE     UNEXPECTED
+			BL      JTAG_ISR  //if equal go to JTAG ISR
+
+UNEXPECTED:
+            B       UNEXPECTED      //if not recognized, stop here
 
 EXIT_IRQ:                                   
 /* Write to the End of Interrupt Register (ICCEOIR) */
@@ -123,8 +157,28 @@ TIMER_ISR:
             POP     {R0-R4}
             BX      LR
 
+JTAG_ISR:   //CONTRIBUTION: FRANCIS
+            LDR  R0,  =JTAG_UART_BASE     //load the base address of jtag
+			LDR  R1, [R0]			      //get the data in the data register 
+			LSR  R1, R1, #16              //shift it right 16 bits, get only the RAVAIL value
+			CMP  R1, #7                   //compair, see if greater than 7
+			BLE  EXIT_IRQ                 //if not turn to exit_irq
+			
+			MOV  R5, #1                   //move a immediate 1 into R5
+			LDR  R6, =CHAR_FLAG           //get address of charflag
+			STR  R5, [R6]                 //set the flag to be one
+            LDRB  R2, [R0]                //get the value in the register again
+            AND  R2, R2, #0x0000000F      //get data value
+			LDR  R3,  =CHAR_BUFFER        //load the char buffer address
+			STR  R2, [R3]			      //store the char value into the buffer
+			BX   LR
 
 number:
     .word 0
 
+CHAR_BUFFER:
+       .word 0
+
+CHAR_FLAG:
+       .word 0
 .end         
