@@ -133,7 +133,8 @@ JTAG_INTERRUPT_HANDLER://CONTRIBUTION: FRANCIS
 TIMER_HANDLER://CONTRIBUTION: ZIhao PU
             CMP     R5, #MPCORE_PRIV_TIMER_IRQ   
             BNE     UNEXPECTED                  // if not recognized, go unexpected
-            BL      EXIT_IRQ                   //  if equal, exit IRQ
+            BL      TIMER_ISR                   // if equal, exit IRQ
+            B       EXIT_IRQ                    
 
 UNEXPECTED:
             B       UNEXPECTED      //if not recognized, stop here
@@ -150,7 +151,7 @@ SERVICE_FIQ:
             B       SERVICE_FIQ             
 
 /*TIMER_ISR*/   //CONTRIBUTION: Zihao PU
-/*
+
 TIMER_ISR:
 
             LDR     R0, =MPCORE_PRIV_TIMER
@@ -163,7 +164,7 @@ TIMER_ISR:
             STR     R6, [R3,#0]             // write on LED
             STR     R6, [R2,#0]             //write back to number
             BX      LR
-*/
+
 JTAG_ISR:   //CONTRIBUTION: FRANCIS
 
             LDR  R0,  =JTAG_UART_BASE       // load the base address of jtag
@@ -184,6 +185,8 @@ CHAR_BUFFER:
 
 CHAR_FLAG:
                 .word 0
+
+CURRENT_PID:    .word 0
 
 PD_ARRAY:       .fill 17,4,0xDEADBEEF
                 .fill 13,4,0xDEADBEE1
