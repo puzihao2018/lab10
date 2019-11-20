@@ -58,6 +58,11 @@ CONFIG_JTAG://CONTRIBUTION: Zihao Pu
             MOV     R1, #0x1
             STR     R1, [R0,#0x4]             // Write to JTAG control
 
+CONTFIG_PID://CONTRIBUTION:Zihao Pu
+            LDR     R0, =CURRENT_PID        //set R0 points to CURRENT_PID
+            MOV     R1, #0                  //PID should be 0 at first
+            STR     R1, [R0]                //write 0 to CURRENT_PID
+
 IDLE:       //CONTRIBUTION: FRANCIS
             LDR     R1, =CHAR_FLAG
 			LDR     R0, [R1]
@@ -151,19 +156,93 @@ SERVICE_FIQ:
             B       SERVICE_FIQ             
 
 /*TIMER_ISR*/   //CONTRIBUTION: Zihao PU
-
 TIMER_ISR:
 
             LDR     R0, =MPCORE_PRIV_TIMER
             MOV     R1, #0
             STR     R1, [R0, #0xC]          //clear interrupt register
-            LDR     R2, =number
-            LDR     R3, =LED_BASE           
-            LDR     R6, [R2]                //read current number
-            ADD     R6, R6, #1              //increment by 1
-            STR     R6, [R3,#0]             // write on LED
-            STR     R6, [R2,#0]             //write back to number
+            LDR     R2, =CURRENT_PID        //read current_pid
+            LDR     R2, [R2, #0]
+            CMP     R2, #0                  //check if pid is 1
+            BEQ     pro0                    //if 0, go pro0
+            B       pro1                    //if 1, go pro1
+/*
+            MOVEQ   R3, #1                  //if 1, write 0
+            MOVNE   R3, #0                  //if 0, write 1
+            STR     R3, [R2, #0]            //writing new pid to CURRENT_PID
             BX      LR
+*/
+pro0:      //CONTRIBUTION: Fuyu Qi
+            LDR   R12,=PD_ARRAY          //get the array address
+            STR   R0, [R12, #0]          //store register 0-5 for use
+			STR   R1, [R12, #4]          
+			STR   R2, [R12, #8]
+			STR   R3, [R12, #12]
+			STR   R4, [R12, #16]
+			STR   R5, [R12, #20]
+			STR   R14, [R12, #60]        //store pc (r14 in irq mode )
+			MSR   R0, spsr
+			STR   R0, [R12, #64]         //store cpsr (saved in spsr)
+			MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
+            MSR     CPSR, R1                // change to supervisor mode
+			STR  R13, [R12, #52]           //store r13 and r14 (lr and sp)
+			STR  R14, [R12, #56]
+			
+			LDR   R7, =CURRENT_PID          //change current value to its opposite on current_pid
+			LDR   R8, [R7]
+			MVN   R8, R8
+			STR   R8, [R7]
+			
+			MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
+            MSR     CPSR, R1                // change to IRQ mode
+			LDR  R12, =PD_ARRAY+PD_OFFSET   //read address of the other half of the array
+			LDR   R0, [R12, #0]             //load it back
+			LDR   R1, [R12, #4]            
+			LDR   R2, [R12, #8]
+			LDR   R3, [R12, #12]
+			LDR   R4, [R12, #16]
+			LDR   R5, [R12, #20]
+			LDR  R13, [R12, #52]            //load back r13 and r14
+			LDR  R14, [R12, #56]
+			SUBS PC, LR, #4                  //recover program counter and cpsr
+
+			
+			B    getout
+			
+			
+pro1:		LDR   R12,=PD_ARRAY+PD_OFFSET
+            STR   R0, [R12, #0]
+			STR   R1, [R12, #4]
+			STR   R2, [R12, #8]
+			STR   R3, [R12, #12]
+			STR   R4, [R12, #16]
+			STR   R5, [R12, #20]
+			STR   R14, [R12, #60]
+			MSR   R0, spsr
+			STR   R0, [R12, #64]
+			MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
+            MSR     CPSR, R1                // change to supervisor mode
+			STR  R13, [R12, #52]
+			STR  R14, [R12, #56]
+			
+			LDR   R7, =CURRENT_PID
+			LDR   R8, [R7]
+			MVN   R8, R8
+			STR   R8, [R7]
+			
+			MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
+            MSR     CPSR, R1                // change to IRQ mode
+			LDR  R12, =PD_ARRAY
+			LDR   R0, [R12, #0]
+			LDR   R1, [R12, #4]
+			LDR   R2, [R12, #8]
+			LDR   R3, [R12, #12]
+			LDR   R4, [R12, #16]
+			LDR   R5, [R12, #20]
+			LDR  R13, [R12, #52]
+			LDR  R14, [R12, #56]
+			SUBS PC, LR, #4
+getout:			BX      LR                    //return to the original program 
 
 JTAG_ISR:   //CONTRIBUTION: FRANCIS
 
@@ -191,5 +270,7 @@ PD_ARRAY:       .fill 17,4,0xDEADBEEF
                 .word 0 // LR
                 .word PROC1+4 // PC
                 .word 0x53 // CPSR (0x53 means IRQ enabled, mode = SVC)
+
+PD_OFFSET:.word 68 
 
 .end         
