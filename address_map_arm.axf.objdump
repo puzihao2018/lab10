@@ -6,13 +6,13 @@ Disassembly of section .vectors:
 
 00000000 <__cs3_interrupt_vector>:
    0:	ea000050 	b	148 <_start>
-   4:	ea000077 	b	1e8 <SERVICE_UND>
-   8:	ea000077 	b	1ec <SERVICE_SVC>
-   c:	ea000078 	b	1f4 <SERVICE_ABT_INST>
-  10:	ea000076 	b	1f0 <SERVICE_ABT_DATA>
+   4:	ea000075 	b	1e0 <SERVICE_UND>
+   8:	ea000075 	b	1e4 <SERVICE_SVC>
+   c:	ea000076 	b	1ec <SERVICE_ABT_INST>
+  10:	ea000074 	b	1e8 <SERVICE_ABT_DATA>
   14:	00000000 	.word	0x00000000
-  18:	ea000076 	b	1f8 <SERVICE_IRQ>
-  1c:	ea000087 	b	240 <SERVICE_FIQ>
+  18:	ea000074 	b	1f0 <SERVICE_IRQ>
+  1c:	ea000086 	b	23c <SERVICE_FIQ>
 
 Disassembly of section .text:
 
@@ -123,7 +123,7 @@ _start:
 
                                             // write to the pushbutton KEY interrupt mask register
             LDR     R0, =KEY_BASE           // pushbutton KEY base address
- 164:	e59f0148 	ldr	r0, [pc, #328]	; 2b4 <CHAR_FLAG+0x4>
+ 164:	e59f0128 	ldr	r0, [pc, #296]	; 294 <CHAR_FLAG+0x4>
             MOV     R1, #0xF               // set interrupt mask bits
  168:	e3a0100f 	mov	r1, #15
             STR     R1, [R0, #0x8]          // interrupt mask register is (base + 8)
@@ -139,259 +139,244 @@ _start:
 
 CONFIG_TIMER://CONTRIBUTION: FRANCIS
             LDR     R0, =MPCORE_PRIV_TIMER  // set R0 points to MPCORE_PRIV_TIMER
- 178:	e59f0138 	ldr	r0, [pc, #312]	; 2b8 <CHAR_FLAG+0x8>
+ 178:	e59f0118 	ldr	r0, [pc, #280]	; 298 <CHAR_FLAG+0x8>
             LDR     R1, =0x5F5E100             // set switch time to be 10^8, which is 0.5s
- 17c:	e59f1138 	ldr	r1, [pc, #312]	; 2bc <CHAR_FLAG+0xc>
+ 17c:	e59f1118 	ldr	r1, [pc, #280]	; 29c <CHAR_FLAG+0xc>
             /*Load 10^8 to load register*/
             STR     R1, [R0, #0]            // load TIMER_LOAD be 10^8
  180:	e5801000 	str	r1, [r0]
 
             /*Load Control signal to contro register*/
-            LDR     R1, [R0, #8]            // read current control register value
- 184:	e5901008 	ldr	r1, [r0, #8]
-            ORR     R1, R1, #7              // let R1 be 0b111
- 188:	e3811007 	orr	r1, r1, #7
+            MOV     R1, #7
+ 184:	e3a01007 	mov	r1, #7
             STR     R1, [R0, #8]            // load control bit (I A E) be (1 1 1)
- 18c:	e5801008 	str	r1, [r0, #8]
+ 188:	e5801008 	str	r1, [r0, #8]
 
-00000190 <CONFIG_JTAG>:
+0000018c <CONFIG_JTAG>:
 
 CONFIG_JTAG://CONTRIBUTION: Zihao Pu
             LDR     R0, =JTAG_UART_BASE     // set R0 points to JTAG
- 190:	e59f0128 	ldr	r0, [pc, #296]	; 2c0 <CHAR_FLAG+0x10>
-            MOV     R1, #1                  // set R1 be 1, then RE is 1 and WE is 0
- 194:	e3a01001 	mov	r1, #1
-            STR     R1, [R0,#4]             // Write to JTAG control
- 198:	e5801004 	str	r1, [r0, #4]
+ 18c:	e59f010c 	ldr	r0, [pc, #268]	; 2a0 <CHAR_FLAG+0x10>
+            MOV     R1, #0x1
+ 190:	e3a01001 	mov	r1, #1
+            STR     R1, [R0,#0x4]             // Write to JTAG control
+ 194:	e5801004 	str	r1, [r0, #4]
 
-0000019c <IDLE>:
+00000198 <IDLE>:
 
 IDLE:       //CONTRIBUTION: FRANCIS
-            PUSH    {R0-R5,LR}
- 19c:	e92d403f 	push	{r0, r1, r2, r3, r4, r5, lr}
-            LDR     R0, =CHAR_FLAG
- 1a0:	e59f011c 	ldr	r0, [pc, #284]	; 2c4 <CHAR_FLAG+0x14>
-			LDR     R1, [R0]
- 1a4:	e5901000 	ldr	r1, [r0]
-			CMP     R1, #1
- 1a8:	e3510001 	cmp	r1, #1
+            LDR     R1, =CHAR_FLAG
+ 198:	e59f1104 	ldr	r1, [pc, #260]	; 2a4 <CHAR_FLAG+0x14>
+			LDR     R0, [R1]
+ 19c:	e5910000 	ldr	r0, [r1]
+			CMP     R0, #1
+ 1a0:	e3500001 	cmp	r0, #1
 			BNE     IDLE 
- 1ac:	1afffffa 	bne	19c <IDLE>
+ 1a4:	1afffffb 	bne	198 <IDLE>
 			LDR     R2, =CHAR_BUFFER
- 1b0:	e59f2110 	ldr	r2, [pc, #272]	; 2c8 <CHAR_FLAG+0x18>
-            LDRB    R3, [R2,#0]
- 1b4:	e5d23000 	ldrb	r3, [r2]
-			B       PUT_JTAG
- 1b8:	ea000003 	b	1cc <PUT_JTAG>
-			MOV     R5, #1
- 1bc:	e3a05001 	mov	r5, #1
-			STR     R5, [R0]
- 1c0:	e5805000 	str	r5, [r0]
-            POP     {R0-R5,PC}
- 1c4:	e8bd803f 	pop	{r0, r1, r2, r3, r4, r5, pc}
+ 1a8:	e59f20f8 	ldr	r2, [pc, #248]	; 2a8 <CHAR_FLAG+0x18>
+            LDRB    R0, [R2,#0]
+ 1ac:	e5d20000 	ldrb	r0, [r2]
+			BL      PUT_JTAG
+ 1b0:	eb000003 	bl	1c4 <PUT_JTAG>
+            LDR     R1, =CHAR_FLAG
+ 1b4:	e59f10e8 	ldr	r1, [pc, #232]	; 2a4 <CHAR_FLAG+0x14>
+			MOV     R2, #0
+ 1b8:	e3a02000 	mov	r2, #0
+			STR     R2, [R1]
+ 1bc:	e5812000 	str	r2, [r1]
             B       IDLE                    // main program simply idles
- 1c8:	eafffff3 	b	19c <IDLE>
+ 1c0:	eafffff4 	b	198 <IDLE>
 
-000001cc <PUT_JTAG>:
+000001c4 <PUT_JTAG>:
 
 PUT_JTAG:   
             LDR R1, =0xFF201000 // JTAG UART base address
- 1cc:	e59f10ec 	ldr	r1, [pc, #236]	; 2c0 <CHAR_FLAG+0x10>
+ 1c4:	e59f10d4 	ldr	r1, [pc, #212]	; 2a0 <CHAR_FLAG+0x10>
             LDR R2, [R1, #4] // read the JTAG UART control register
- 1d0:	e5912004 	ldr	r2, [r1, #4]
+ 1c8:	e5912004 	ldr	r2, [r1, #4]
             LDR R3, =0xFFFF
- 1d4:	e59f30f0 	ldr	r3, [pc, #240]	; 2cc <CHAR_FLAG+0x1c>
+ 1cc:	e59f30d8 	ldr	r3, [pc, #216]	; 2ac <CHAR_FLAG+0x1c>
             ANDS R2, R2, R3 // check for write space
- 1d8:	e0122003 	ands	r2, r2, r3
+ 1d0:	e0122003 	ands	r2, r2, r3
             BEQ END_PUT // if no space, ignore the character
- 1dc:	0a000000 	beq	1e4 <END_PUT>
+ 1d4:	0a000000 	beq	1dc <END_PUT>
             STR R0, [R1] // send the character
- 1e0:	e5810000 	str	r0, [r1]
+ 1d8:	e5810000 	str	r0, [r1]
 
-000001e4 <END_PUT>:
+000001dc <END_PUT>:
 END_PUT:    BX LR
- 1e4:	e12fff1e 	bx	lr
+ 1dc:	e12fff1e 	bx	lr
 
-000001e8 <SERVICE_UND>:
+000001e0 <SERVICE_UND>:
 
 /* Define the exception service routines */
 
 /*--- Undefined instructions --------------------------------------------------*/
 SERVICE_UND:                                
             B       SERVICE_UND             
- 1e8:	eafffffe 	b	1e8 <SERVICE_UND>
+ 1e0:	eafffffe 	b	1e0 <SERVICE_UND>
 
-000001ec <SERVICE_SVC>:
+000001e4 <SERVICE_SVC>:
 
 /*--- Software interrupts -----------------------------------------------------*/
 SERVICE_SVC:                                
             B       SERVICE_SVC             
- 1ec:	eafffffe 	b	1ec <SERVICE_SVC>
+ 1e4:	eafffffe 	b	1e4 <SERVICE_SVC>
 
-000001f0 <SERVICE_ABT_DATA>:
+000001e8 <SERVICE_ABT_DATA>:
 
 /*--- Aborted data reads ------------------------------------------------------*/
 SERVICE_ABT_DATA:                           
             B       SERVICE_ABT_DATA        
- 1f0:	eafffffe 	b	1f0 <SERVICE_ABT_DATA>
+ 1e8:	eafffffe 	b	1e8 <SERVICE_ABT_DATA>
 
-000001f4 <SERVICE_ABT_INST>:
+000001ec <SERVICE_ABT_INST>:
 
 /*--- Aborted instruction fetch -----------------------------------------------*/
 SERVICE_ABT_INST:                           
             B       SERVICE_ABT_INST        
- 1f4:	eafffffe 	b	1f4 <SERVICE_ABT_INST>
+ 1ec:	eafffffe 	b	1ec <SERVICE_ABT_INST>
 
-000001f8 <SERVICE_IRQ>:
+000001f0 <SERVICE_IRQ>:
 
 /*--- IRQ ---------------------------------------------------------------------*/
 SERVICE_IRQ:                                
             PUSH    {R0-R7, LR}             
- 1f8:	e92d40ff 	push	{r0, r1, r2, r3, r4, r5, r6, r7, lr}
+ 1f0:	e92d40ff 	push	{r0, r1, r2, r3, r4, r5, r6, r7, lr}
 
 /* Read the ICCIAR from the CPU interface */
             LDR     R4, =MPCORE_GIC_CPUIF   
- 1fc:	e59f40cc 	ldr	r4, [pc, #204]	; 2d0 <CHAR_FLAG+0x20>
-            LDR     R5, [R4, #ICCIAR]       // read from ICCIAR
- 200:	e594500c 	ldr	r5, [r4, #12]
+ 1f4:	e59f40b4 	ldr	r4, [pc, #180]	; 2b0 <CHAR_FLAG+0x20>
+            LDR     R5, [R4, #ICCIAR]            // read from ICCIAR
+ 1f8:	e594500c 	ldr	r5, [r4, #12]
 
-00000204 <FPGA_IRQ1_HANDLER>:
+000001fc <FPGA_IRQ1_HANDLER>:
 
 FPGA_IRQ1_HANDLER:                         
             CMP     R5, #KEYS_IRQ           
- 204:	e3550049 	cmp	r5, #73	; 0x49
-            BNE     TIMER_HANDLER       //if not key, check timer     
- 208:	1a000001 	bne	214 <TIMER_HANDLER>
-
-            BL      KEY_ISR
- 20c:	ebffffb4 	bl	e4 <KEY_ISR>
+ 1fc:	e3550049 	cmp	r5, #73	; 0x49
+            BNE     JTAG_INTERRUPT_HANDLER       // if not key, check JTAG     
+ 200:	1a000001 	bne	20c <JTAG_INTERRUPT_HANDLER>
+            BL      KEY_ISR                      // if equal go to KEY ISR    
+ 204:	ebffffb6 	bl	e4 <KEY_ISR>
             B       EXIT_IRQ
- 210:	ea000007 	b	234 <EXIT_IRQ>
+ 208:	ea000008 	b	230 <EXIT_IRQ>
 
-00000214 <TIMER_HANDLER>:
-
-TIMER_HANDLER://CONTRIBUTION: ZIhao PU
-            CMP     R5, #MPCORE_PRIV_TIMER_IRQ   
- 214:	e355001d 	cmp	r5, #29
-            BNE     JTAG_INTERRUPT_HANDLER        // if not timer, check JTAG
- 218:	1a000001 	bne	224 <JTAG_INTERRUPT_HANDLER>
-
-            BL      TIMER_ISR
- 21c:	eb000008 	bl	244 <TIMER_ISR>
-            B       EXIT_IRQ
- 220:	ea000003 	b	234 <EXIT_IRQ>
-
-00000224 <JTAG_INTERRUPT_HANDLER>:
+0000020c <JTAG_INTERRUPT_HANDLER>:
 
 JTAG_INTERRUPT_HANDLER://CONTRIBUTION: FRANCIS
             CMP     R5, #JTAG_IRQ
- 224:	e3550050 	cmp	r5, #80	; 0x50
-        	BNE     UNEXPECTED
- 228:	1a000000 	bne	230 <UNEXPECTED>
-			BL      JTAG_ISR  //if equal go to JTAG ISR
- 22c:	eb000010 	bl	274 <JTAG_ISR>
+ 20c:	e3550050 	cmp	r5, #80	; 0x50
+        	BNE     TIMER_HANDLER               // if not timer, check JTAG
+ 210:	1a000001 	bne	21c <TIMER_HANDLER>
+			BL      JTAG_ISR                    // if equal go to JTAG ISR
+ 214:	eb000013 	bl	268 <JTAG_ISR>
+            B       EXIT_IRQ
+ 218:	ea000004 	b	230 <EXIT_IRQ>
 
-00000230 <UNEXPECTED>:
+0000021c <TIMER_HANDLER>:
+
+
+TIMER_HANDLER://CONTRIBUTION: ZIhao PU
+            CMP     R5, #MPCORE_PRIV_TIMER_IRQ   
+ 21c:	e355001d 	cmp	r5, #29
+            BNE     UNEXPECTED                  // if not recognized, go unexpected
+ 220:	1a000001 	bne	22c <UNEXPECTED>
+            BL      TIMER_ISR                   // if equal, go to TIMER_ISR
+ 224:	eb000005 	bl	240 <TIMER_ISR>
+            B       EXIT_IRQ
+ 228:	ea000000 	b	230 <EXIT_IRQ>
+
+0000022c <UNEXPECTED>:
+
 
 UNEXPECTED:
             B       UNEXPECTED      //if not recognized, stop here
- 230:	eafffffe 	b	230 <UNEXPECTED>
+ 22c:	eafffffe 	b	22c <UNEXPECTED>
 
-00000234 <EXIT_IRQ>:
+00000230 <EXIT_IRQ>:
 
 EXIT_IRQ:                                   
 /* Write to the End of Interrupt Register (ICCEOIR) */
             STR     R5, [R4, #ICCEOIR]      // write to ICCEOIR
- 234:	e5845010 	str	r5, [r4, #16]
+ 230:	e5845010 	str	r5, [r4, #16]
 
             POP     {R0-R7, LR}             
- 238:	e8bd40ff 	pop	{r0, r1, r2, r3, r4, r5, r6, r7, lr}
+ 234:	e8bd40ff 	pop	{r0, r1, r2, r3, r4, r5, r6, r7, lr}
             SUBS    PC, LR, #4              
- 23c:	e25ef004 	subs	pc, lr, #4
+ 238:	e25ef004 	subs	pc, lr, #4
 
-00000240 <SERVICE_FIQ>:
+0000023c <SERVICE_FIQ>:
 
 /*--- FIQ ---------------------------------------------------------------------*/
 SERVICE_FIQ:                                
             B       SERVICE_FIQ             
- 240:	eafffffe 	b	240 <SERVICE_FIQ>
+ 23c:	eafffffe 	b	23c <SERVICE_FIQ>
 
-00000244 <TIMER_ISR>:
+00000240 <TIMER_ISR>:
 
 /*TIMER_ISR*/   //CONTRIBUTION: Zihao PU
 TIMER_ISR:
 
-            PUSH    {R0-R4}
- 244:	e92d001f 	push	{r0, r1, r2, r3, r4}
             LDR     R0, =MPCORE_PRIV_TIMER
- 248:	e59f0068 	ldr	r0, [pc, #104]	; 2b8 <CHAR_FLAG+0x8>
+ 240:	e59f0050 	ldr	r0, [pc, #80]	; 298 <CHAR_FLAG+0x8>
             MOV     R1, #0
- 24c:	e3a01000 	mov	r1, #0
+ 244:	e3a01000 	mov	r1, #0
             STR     R1, [R0, #0xC]          //clear interrupt register
- 250:	e580100c 	str	r1, [r0, #12]
+ 248:	e580100c 	str	r1, [r0, #12]
             LDR     R2, =number
- 254:	e59f2078 	ldr	r2, [pc, #120]	; 2d4 <CHAR_FLAG+0x24>
+ 24c:	e59f2060 	ldr	r2, [pc, #96]	; 2b4 <CHAR_FLAG+0x24>
             LDR     R3, =LED_BASE           
- 258:	e59f3078 	ldr	r3, [pc, #120]	; 2d8 <CHAR_FLAG+0x28>
-            LDR     R4, [R2]                //read current number
- 25c:	e5924000 	ldr	r4, [r2]
-            ADD     R4, R4, #1              //increment by 1
- 260:	e2844001 	add	r4, r4, #1
-            STR     R4, [R3,#0]             // write on LED
- 264:	e5834000 	str	r4, [r3]
-            STR     R4, [R2,#0]             //write back to number
- 268:	e5824000 	str	r4, [r2]
-            POP     {R0-R4}
- 26c:	e8bd001f 	pop	{r0, r1, r2, r3, r4}
+ 250:	e59f3060 	ldr	r3, [pc, #96]	; 2b8 <CHAR_FLAG+0x28>
+            LDR     R6, [R2]                //read current number
+ 254:	e5926000 	ldr	r6, [r2]
+            ADD     R6, R6, #1              //increment by 1
+ 258:	e2866001 	add	r6, r6, #1
+            STR     R6, [R3,#0]             // write on LED
+ 25c:	e5836000 	str	r6, [r3]
+            STR     R6, [R2,#0]             //write back to number
+ 260:	e5826000 	str	r6, [r2]
             BX      LR
- 270:	e12fff1e 	bx	lr
+ 264:	e12fff1e 	bx	lr
 
-00000274 <JTAG_ISR>:
+00000268 <JTAG_ISR>:
 
 JTAG_ISR:   //CONTRIBUTION: FRANCIS
-            LDR  R0,  =JTAG_UART_BASE     //load the base address of jtag
- 274:	e59f0044 	ldr	r0, [pc, #68]	; 2c0 <CHAR_FLAG+0x10>
-			LDR  R1, [R0]			      //get the data in the data register 
- 278:	e5901000 	ldr	r1, [r0]
-			LSR  R1, R1, #16              //shift it right 16 bits, get only the RAVAIL value
- 27c:	e1a01821 	lsr	r1, r1, #16
-			CMP  R1, #7                   //compair, see if greater than 7
- 280:	e3510007 	cmp	r1, #7
-			BLE  EXIT_IRQ                 //if not turn to exit_irq
- 284:	daffffea 	ble	234 <EXIT_IRQ>
-			
-			MOV  R5, #1                   //move a immediate 1 into R5
- 288:	e3a05001 	mov	r5, #1
-			LDR  R6, =CHAR_FLAG           //get address of charflag
- 28c:	e59f6030 	ldr	r6, [pc, #48]	; 2c4 <CHAR_FLAG+0x14>
-			STR  R5, [R6]                 //set the flag to be one
- 290:	e5865000 	str	r5, [r6]
-            LDRB  R2, [R0]                //get the value in the register again
- 294:	e5d02000 	ldrb	r2, [r0]
-            AND  R2, R2, #0x0000000F      //get data value
- 298:	e202200f 	and	r2, r2, #15
-			LDR  R3,  =CHAR_BUFFER        //load the char buffer address
- 29c:	e59f3024 	ldr	r3, [pc, #36]	; 2c8 <CHAR_FLAG+0x18>
-			STR  R2, [R3]			      //store the char value into the buffer
- 2a0:	e5832000 	str	r2, [r3]
-			BX   LR
- 2a4:	e12fff1e 	bx	lr
 
-000002a8 <number>:
- 2a8:	00000000 	.word	0x00000000
+            LDR  R0,  =JTAG_UART_BASE       // load the base address of jtag
+ 268:	e59f0030 	ldr	r0, [pc, #48]	; 2a0 <CHAR_FLAG+0x10>
+            LDR  R1,  =CHAR_FLAG            // load the base address of char_flag
+ 26c:	e59f1030 	ldr	r1, [pc, #48]	; 2a4 <CHAR_FLAG+0x14>
+            LDR  R2,  =CHAR_BUFFER          // load the base address of 
+ 270:	e59f2030 	ldr	r2, [pc, #48]	; 2a8 <CHAR_FLAG+0x18>
+            MOV  R3,  #1
+ 274:	e3a03001 	mov	r3, #1
+            LDRB R6, [R0]
+ 278:	e5d06000 	ldrb	r6, [r0]
+            STR  R3, [R1]
+ 27c:	e5813000 	str	r3, [r1]
+            STR  R6, [R2]
+ 280:	e5826000 	str	r6, [r2]
 
-000002ac <CHAR_BUFFER>:
- 2ac:	00000000 	.word	0x00000000
+            BX   LR
+ 284:	e12fff1e 	bx	lr
 
-000002b0 <CHAR_FLAG>:
- 2b0:	00000000 	.word	0x00000000
- 2b4:	ff200050 	.word	0xff200050
- 2b8:	fffec600 	.word	0xfffec600
- 2bc:	05f5e100 	.word	0x05f5e100
- 2c0:	ff201000 	.word	0xff201000
- 2c4:	000002b0 	.word	0x000002b0
- 2c8:	000002ac 	.word	0x000002ac
- 2cc:	0000ffff 	.word	0x0000ffff
- 2d0:	fffec100 	.word	0xfffec100
- 2d4:	000002a8 	.word	0x000002a8
- 2d8:	ff200000 	.word	0xff200000
+00000288 <number>:
+ 288:	00000000 	.word	0x00000000
+
+0000028c <CHAR_BUFFER>:
+ 28c:	00000000 	.word	0x00000000
+
+00000290 <CHAR_FLAG>:
+ 290:	00000000 	.word	0x00000000
+ 294:	ff200050 	.word	0xff200050
+ 298:	fffec600 	.word	0xfffec600
+ 29c:	05f5e100 	.word	0x05f5e100
+ 2a0:	ff201000 	.word	0xff201000
+ 2a4:	00000290 	.word	0x00000290
+ 2a8:	0000028c 	.word	0x0000028c
+ 2ac:	0000ffff 	.word	0x0000ffff
+ 2b0:	fffec100 	.word	0xfffec100
+ 2b4:	00000288 	.word	0x00000288
+ 2b8:	ff200000 	.word	0xff200000

@@ -67,7 +67,7 @@ CONFIG_INTERRUPT:
 				/* now that we have the register address (R4) and value (R2), we need to set the
 				 * correct bit in the GIC register */
     			LDR		R3, [R4]								// read current register value
-    			ORR		R3, R3, R2							// set the enable bit
+    			ORR		R3, R3, R2								// set the enable bit
     			STR		R3, [R4]								// store the new register value
 
     			/* Configure Interrupt Processor Targets Register (ICDIPTRn)

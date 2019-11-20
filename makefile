@@ -28,7 +28,7 @@ OCFLAGS		:= -O srec
 
 # Files
 HDRS		:=
-SRCS		:= address_map_arm.s config_GIC2.s interrupt_ID.s key_isr.s part3.s
+SRCS		:= address_map_arm.s config_GIC2.s interrupt_ID.s key_isr.s part4.s
 OBJS		:= $(patsubst %, %.o, $(SRCS))
 
 # Targets

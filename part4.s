@@ -71,6 +71,17 @@ IDLE:       //CONTRIBUTION: FRANCIS
 			STR     R2, [R1]
             B       IDLE                    // main program simply idles
 
+PROC1:      //CONTRIBUTION: FRANCIS
+            MOV R0, #0
+			LDR R1, =0xFF200000
+loop:       ADD R0,R0,#1
+            STR R0,[R1] 			
+			MOV R2, #0
+doloop:	    ADD R2,R2,#1
+			CMP R2, #256 //my chosen large number
+			BLT doloop
+			B   loop
+
 PUT_JTAG:   
             LDR R1, =0xFF201000 // JTAG UART base address
             LDR R2, [R1, #4] // read the JTAG UART control register
@@ -114,7 +125,7 @@ FPGA_IRQ1_HANDLER:
 
 JTAG_INTERRUPT_HANDLER://CONTRIBUTION: FRANCIS
             CMP     R5, #JTAG_IRQ
-        	BNE     TIMER_HANDLER               // if not timer, check JTAG
+        	BNE     UNEXPECTED                  // if not JTAG, go TIMER_HANDLER
 			BL      JTAG_ISR                    // if equal go to JTAG ISR
             B       EXIT_IRQ
 
@@ -122,9 +133,7 @@ JTAG_INTERRUPT_HANDLER://CONTRIBUTION: FRANCIS
 TIMER_HANDLER://CONTRIBUTION: ZIhao PU
             CMP     R5, #MPCORE_PRIV_TIMER_IRQ   
             BNE     UNEXPECTED                  // if not recognized, go unexpected
-            BL      TIMER_ISR                   // if equal, go to TIMER_ISR
-            B       EXIT_IRQ
-
+            BL      EXIT_IRQ                   // if equal, exit 
 
 UNEXPECTED:
             B       UNEXPECTED      //if not recognized, stop here
@@ -167,11 +176,19 @@ JTAG_ISR:   //CONTRIBUTION: FRANCIS
             BX   LR
 
 number:
-    .word 0
+                .word 0
 
 CHAR_BUFFER:
-       .word 0
+                .word 0
 
 CHAR_FLAG:
-       .word 0
+                .word 0
+
+PD_ARRAY:       .fill 17,4,0xDEADBEEF
+                .fill 13,4,0xDEADBEE1
+                .word 0x3F000000 // SP
+                .word 0 // LR
+                .word PROC1+4 // PC
+                .word 0x53 // CPSR (0x53 means IRQ enabled, mode = SVC)
+
 .end         

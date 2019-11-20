@@ -15,7 +15,7 @@
             <source_file filepath="true">config_GIC2.s</source_file>
             <source_file filepath="true">interrupt_ID.s</source_file>
             <source_file filepath="true">key_isr.s</source_file>
-            <source_file filepath="true">part3.s</source_file>
+            <source_file filepath="true">part4.s</source_file>
         </source_files>
         <options>
             <start_symbol>_start</start_symbol>
