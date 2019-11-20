@@ -45,7 +45,7 @@ _start:
 
 CONFIG_TIMER://CONTRIBUTION: FRANCIS
             LDR     R0, =MPCORE_PRIV_TIMER  // set R0 points to MPCORE_PRIV_TIMER
-            LDR     R1, =500                // set switch time to be 10^8, which is 0.5s
+            LDR     R1, =500                // set timer interrupt to be 500, so switch threads every 0.00025s
             /*Load 10^8 to load register*/
             STR     R1, [R0, #0]            // load TIMER_LOAD be 10^8
 
@@ -176,9 +176,6 @@ JTAG_ISR:   //CONTRIBUTION: FRANCIS
             STR  R6, [R2]
 
             BX   LR
-
-number:
-                .word 0
 
 CHAR_BUFFER:
                 .word 0
