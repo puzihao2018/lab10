@@ -130,7 +130,7 @@ FPGA_IRQ1_HANDLER:
 
 JTAG_INTERRUPT_HANDLER://CONTRIBUTION: FRANCIS
             CMP     R5, #JTAG_IRQ
-        	BNE     UNEXPECTED                  // if not JTAG, go TIMER_HANDLER
+        	BNE     TIMER_HANDLER                  // if not JTAG, go TIMER_HANDLER
 			BL      JTAG_ISR                    // if equal go to JTAG ISR
             B       EXIT_IRQ
 
@@ -166,13 +166,8 @@ TIMER_ISR:
             CMP     R3, #0                  //check if pid is 0
             BEQ     pro0                    //if 0, go pro0
             B       pro1                    //if 1, go pro1
-/*
-            MOVEQ   R3, #1                  //if 1, write 0
-            MOVNE   R3, #0                  //if 0, write 1
-            STR     R3, [R2, #0]            //writing new pid to CURRENT_PID
-            BX      LR
-*/
-pro0:
+
+pro0:       //CONTRIBUTION Yuqi, Fu
             LDR     R7, =PD_ARRAY          //get the pd_array address
             MOV     R3, #1
             STR     R3, [R2]                  //update current_pid to be 1
@@ -185,8 +180,12 @@ pro0:
             STR     R12,[R7, #48]
 
             /***store spsr***/
-            MSR     SPSR, R0
+            MRS     R0, SPSR
             STR     R0, [R7, #0x40]
+
+            /***clear interrupt***/
+            LDR     R5, =29
+            STR     R5, [R4, #ICCEOIR]      // write to ICCEOIR
 
             /***store registers before interrupt***/
             LDR     R8, =PD_ARRAY           // already backed-up, use to store pd-array address
@@ -243,7 +242,7 @@ pro0:
             MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
             MSR     CPSR, R1                // change to supervisor mode
             LDR     SP, [R7, #52]          // Restore SVC sp from pd_array
-            STR     LR, [R7, #56]          // Restore SVC lr from pd_array
+            LDR     LR, [R7, #56]          // Restore SVC lr from pd_array
             MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
             MSR     CPSR_c, R1              // change to IRQ mode
             /***Done with Restoring***/
@@ -252,7 +251,7 @@ pro0:
             POP     {R0-R7}                 //POP back used R0-R7
             SUBS    PC, LR, #4              
 
-pro1:
+pro1:       //CONTRIBUTION Yuqi, Fu
             LDR     R7, =PD_ARRAY          //get the pd_array address
             ADD     R7, R7, #0x48          //get the pd_array base address of process1
             MOV     R3, #0
@@ -266,8 +265,12 @@ pro1:
             STR     R12,[R7, #48]
 
             /***store spsr***/
-            MSR     SPSR, R0
+            MRS     R0,SPSR
             STR     R0, [R7, #0x40]
+            
+            /***clear interrupt***/
+            LDR     R5, =29
+            STR     R5, [R4, #ICCEOIR]      // write to ICCEOIR
 
             /***store registers before interrupt***/
             MOV     R8, R7                  // already backed-up, use to store pd-array base address of process2
@@ -320,7 +323,7 @@ pro1:
             MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
             MSR     CPSR, R1                // change to supervisor mode
             LDR     SP, [R7, #52]          // Restore SVC sp from pd_array
-            STR     LR, [R7, #56]          // Restore SVC lr from pd_array
+            LDR     LR, [R7, #56]          // Restore SVC lr from pd_array
             MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
             MSR     CPSR_c, R1              // change to IRQ mode
             /***Done with Restoring***/
