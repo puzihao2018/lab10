@@ -161,9 +161,9 @@ TIMER_ISR:
             LDR     R0, =MPCORE_PRIV_TIMER
             MOV     R1, #0
             STR     R1, [R0, #0xC]          //clear interrupt register
-            LDR     R2, =CURRENT_PID        //read current_pid
-            LDR     R2, [R2, #0]
-            CMP     R2, #0                  //check if pid is 1
+            LDR     R2, =CURRENT_PID        //get current_pid address
+            LDR     R3, [R2, #0]            //load pid
+            CMP     R3, #0                  //check if pid is 0
             BEQ     pro0                    //if 0, go pro0
             B       pro1                    //if 1, go pro1
 /*
@@ -172,77 +172,163 @@ TIMER_ISR:
             STR     R3, [R2, #0]            //writing new pid to CURRENT_PID
             BX      LR
 */
-pro0:      //CONTRIBUTION: Fuyu Qi
-            LDR   R12,=PD_ARRAY          //get the array address
-            STR   R0, [R12, #0]          //store register 0-5 for use
-			STR   R1, [R12, #4]          
-			STR   R2, [R12, #8]
-			STR   R3, [R12, #12]
-			STR   R4, [R12, #16]
-			STR   R5, [R12, #20]
-			STR   R14, [R12, #60]        //store pc (r14 in irq mode )
-			MSR   R0, spsr
-			STR   R0, [R12, #64]         //store cpsr (saved in spsr)
-			MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
-            MSR     CPSR, R1                // change to supervisor mode
-			STR  R13, [R12, #52]           //store r13 and r14 (lr and sp)
-			STR  R14, [R12, #56]
-			
-			LDR   R7, =CURRENT_PID          //change current value to its opposite on current_pid
-			LDR   R8, [R7]
-			MVN   R8, R8
-			STR   R8, [R7]
-			
-			MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
-            MSR     CPSR, R1                // change to IRQ mode
-			LDR  R12, =PD_ARRAY+PD_OFFSET   //read address of the other half of the array
-			LDR   R0, [R12, #0]             //load it back
-			LDR   R1, [R12, #4]            
-			LDR   R2, [R12, #8]
-			LDR   R3, [R12, #12]
-			LDR   R4, [R12, #16]
-			LDR   R5, [R12, #20]
-			LDR  R13, [R12, #52]            //load back r13 and r14
-			LDR  R14, [R12, #56]
-			SUBS PC, LR, #4                  //recover program counter and cpsr
+pro0:
+            LDR     R7, =PD_ARRAY          //get the pd_array address
+            MOV     R3, #1
+            STR     R3, [R2]                  //update current_pid to be 1
+            
+            /***store normal registers outside interrupt***/
+            STR     R8, [R7, #32]
+            STR     R9, [R7, #36]
+            STR     R10,[R7, #40]
+            STR     R11,[R7, #44]
+            STR     R12,[R7, #48]
 
-			
-			B    getout
-			
-			
-pro1:		LDR   R12,=PD_ARRAY+PD_OFFSET
-            STR   R0, [R12, #0]
-			STR   R1, [R12, #4]
-			STR   R2, [R12, #8]
-			STR   R3, [R12, #12]
-			STR   R4, [R12, #16]
-			STR   R5, [R12, #20]
-			STR   R14, [R12, #60]
-			MSR   R0, spsr
-			STR   R0, [R12, #64]
-			MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
+            /***store spsr***/
+            MSR     SPSR, R0
+            STR     R0, [R7, #0x40]
+
+            /***store registers before interrupt***/
+            LDR     R8, =PD_ARRAY           // already backed-up, use to store pd-array address
+            POP     {R0-R7,LR}              // restore the stored R0-R7 and LR before interrupting
+            STR     R0, [R8, #0]
+            STR     R1, [R8, #4]
+            STR     R2, [R8, #8]
+            STR     R3, [R8, #12]
+            STR     R4, [R8, #16]
+            STR     R5, [R8, #20]
+            STR     R6, [R8, #24]
+            STR     R7, [R8, #28]
+            STR     LR, [R8, #0x3C]
+            /***end store normal registers***/
+
+            /***FORCE GOES TO SVR, AND SAVE LR/PC***/
+            MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
             MSR     CPSR, R1                // change to supervisor mode
-			STR  R13, [R12, #52]
-			STR  R14, [R12, #56]
-			
-			LDR   R7, =CURRENT_PID
-			LDR   R8, [R7]
-			MVN   R8, R8
-			STR   R8, [R7]
-			
-			MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
-            MSR     CPSR, R1                // change to IRQ mode
-			LDR  R12, =PD_ARRAY
-			LDR   R0, [R12, #0]
-			LDR   R1, [R12, #4]
-			LDR   R2, [R12, #8]
-			LDR   R3, [R12, #12]
-			LDR   R4, [R12, #16]
-			LDR   R5, [R12, #20]
-			LDR  R13, [R12, #52]
-			LDR  R14, [R12, #56]
-			SUBS PC, LR, #4
-getout:			BX      LR                    //return to the original program 
+            STR     SP, [R8, #52]          // store SVC sp to pd_array
+            STR     LR, [R8, #56]          // store SVC lr tp pd_array
+            MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
+            MSR     CPSR_c, R1              // change to IRQ mode
+            /***Done with storing***/
+
+            /***Starting Loading Normal Registers***/
+            LDR     R8, =PD_ARRAY           // copy pd_array address to R8
+            LDR     R9, =PD_OFFSET          // copy pd_offset address to R9
+            LDR     R10, [R9]               // load pd offset to r10
+            ADD     R8, R8, R10             // PD_array base address of process 1
+            LDR     R0, [R8,#0]
+            LDR     R1, [R8,#4]
+            LDR     R2, [R8,#8]
+            LDR     R3, [R8,#12]
+            LDR     R4, [R8, #16]
+            LDR     R5, [R8, #20]
+            LDR     R6, [R8, #24]
+            LDR     R7, [R8, #28]
+            PUSH    {R0-R7}                 //R0-R7 will be used later
+            
+            /***Loading SPSR***/
+            LDR     R0, [R8, #0x40]         //Load PROC1 SPSR to R0
+            MSR     SPSR, R0                //Copies R0 into SPSR
+
+            /***Load other normal registers***/
+            MOV     R7, R8                  //mov, let R7 be PD_array base address of process 1
+            LDR     R8, [R7, #32]
+            LDR     R9, [R7, #36]
+            LDR     R10,[R7, #40]
+            LDR     R11,[R7, #44]
+            LDR     R12,[R7, #48]
+            /***Normal registers restored finished***/
+            
+            /***FORCE GOES TO SVR, AND Restore LR&PC***/
+            MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
+            MSR     CPSR, R1                // change to supervisor mode
+            LDR     SP, [R7, #52]          // Restore SVC sp from pd_array
+            STR     LR, [R7, #56]          // Restore SVC lr from pd_array
+            MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
+            MSR     CPSR_c, R1              // change to IRQ mode
+            /***Done with Restoring***/
+
+            /***SWTICH PROCESS***/
+            POP     {R0-R7}                 //POP back used R0-R7
+            SUBS    PC, LR, #4              
+
+pro1:
+            LDR     R7, =PD_ARRAY          //get the pd_array address
+            ADD     R7, R7, #0x48          //get the pd_array base address of process1
+            MOV     R3, #0
+            STR     R3, [R2]                  //update current_pid to be 1
+            
+            /***store normal registers outside interrupt***/
+            STR     R8, [R7, #32]
+            STR     R9, [R7, #36]
+            STR     R10,[R7, #40]
+            STR     R11,[R7, #44]
+            STR     R12,[R7, #48]
+
+            /***store spsr***/
+            MSR     SPSR, R0
+            STR     R0, [R7, #0x40]
+
+            /***store registers before interrupt***/
+            MOV     R8, R7                  // already backed-up, use to store pd-array base address of process2
+            POP     {R0-R7,LR}              // restore the stored R0-R7 and LR before interrupting
+            STR     R0, [R8, #0]
+            STR     R1, [R8, #4]
+            STR     R2, [R8, #8]
+            STR     R3, [R8, #12]
+            STR     R4, [R8, #16]
+            STR     R5, [R8, #20]
+            STR     R6, [R8, #24]
+            STR     R7, [R8, #28]
+            STR     LR, [R8, #0x3C]
+            /***end store normal registers***/
+
+            /***FORCE GOES TO SVR, AND SAVE LR/PC***/
+            MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
+            MSR     CPSR, R1                // change to supervisor mode
+            STR     SP, [R8, #52]          // store SVC sp to pd_array
+            STR     LR, [R8, #56]          // store SVC lr tp pd_array
+            MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
+            MSR     CPSR_c, R1              // change to IRQ mode
+            /***Done with storing***/
+
+            /***Starting Loading Normal Registers***/
+            LDR     R8, =PD_ARRAY           // copy pd_array base address to R8
+            LDR     R0, [R8,#0]
+            LDR     R1, [R8,#4]
+            LDR     R2, [R8,#8]
+            LDR     R3, [R8,#12]
+            LDR     R4, [R8, #16]
+            LDR     R5, [R8, #20]
+            LDR     R6, [R8, #24]
+            LDR     R7, [R8, #28]
+            PUSH    {R0-R7}                 //R0-R7 will be used later
+            
+            /***Loading SPSR***/
+            LDR     R0, [R8, #0x40]         //Load PROC1 SPSR to R0
+            MSR     SPSR, R0                //Copies R0 into SPSR            MOV     R7, R8                  //mov, let R7 be PD_array base address of process 1
+            
+            /***Load other normal registers***/
+            LDR     R8, [R7, #32]
+            LDR     R9, [R7, #36]
+            LDR     R10,[R7, #40]
+            LDR     R11,[R7, #44]
+            LDR     R12,[R7, #48]
+            /***Normal registers restored finished***/
+            
+            /***FORCE GOES TO SVR, AND Restore LR&PC***/
+            MOV     R1, #0b11010011         // interrupts masked, MODE = SVC
+            MSR     CPSR, R1                // change to supervisor mode
+            LDR     SP, [R7, #52]          // Restore SVC sp from pd_array
+            STR     LR, [R7, #56]          // Restore SVC lr from pd_array
+            MOV     R1, #0b11010010         // interrupts masked, MODE = IRQ
+            MSR     CPSR_c, R1              // change to IRQ mode
+            /***Done with Restoring***/
+
+            /***SWTICH PROCESS***/
+            POP     {R0-R7}                 //POP back used R0-R7
+            SUBS    PC, LR, #4            
+
 
 JTAG_ISR:   //CONTRIBUTION: FRANCIS
 
@@ -271,6 +357,6 @@ PD_ARRAY:       .fill 17,4,0xDEADBEEF
                 .word PROC1+4 // PC
                 .word 0x53 // CPSR (0x53 means IRQ enabled, mode = SVC)
 
-PD_OFFSET:.word 68 
+PD_OFFSET:      .word 68 
 
-.end         
+.end
