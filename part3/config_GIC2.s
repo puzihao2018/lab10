@@ -1,3 +1,4 @@
+//the content of this file comes partially from config_GIC.s  
 				.include	"address_map_arm.s"
 /* 
  * Configure the Generic Interrupt Controller (GIC)
